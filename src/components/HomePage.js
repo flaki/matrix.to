@@ -16,6 +16,9 @@ limitations under the License.
 
 import React from 'react'
 
+import LinkableClient from './LinkableClient'
+
+
 var linkable_clients = [
     {
         name: "Riot",
@@ -43,6 +46,24 @@ var linkable_clients = [
         room_id_url(id) { return "https://view.matrix.org/room/" + id },
         maturity: "Stable",
         comments: "A static golang generated preview of public world readable Matrix rooms.",
+    },
+    {
+        name: "Custom Riot Web instance",
+        logo: {
+            width: "48px",
+            src: "img/riot@2x.png",
+            srcSet: "img/riot.png, img/riot@2x.png 2x",
+        },
+        author: "New Vector",
+        homepage: "",
+        room_url(alias)  { return `${this.homepage}/#/room/${alias}` },
+        room_id_url(id)  { return `${this.homepage}/#/room/${id}` },
+        user_url(userId) { return `${this.homepage}/#/user/${userId}` },
+        msg_url(msg)     { return `${this.homepage}/#/room/${msg}` },
+        group_url(group) { return `${this.homepage}/#/group/${group}` },
+        maturity: "Stable",
+        comments: "If you have a custom Riot Web installation that you prefer enter its URL on the left.",
+        customizable: true,
     },
 ];
 
@@ -236,17 +257,26 @@ export default React.createClass({
             // comments: "Fully-featured Matrix client for Web, iOS & Android",
 
             var description;
+            var linktype;
             if (isRoom) {
                 description = <span>the <b>{ this.state.entity }</b> room</span>;
+                linktype = "Room";
+            }
+            else if (isRoomId) {
+                description = <span>the room with the ID <b>{ this.state.entity }</b></span>;
+                linktype = "RoomId";
             }
             else if (isUser) {
                 description = <span>the user <b>{ this.state.entity }</b></span>;
+                linktype = "User";
             }
             else if (isMsg) {
                 description = <span><b>this message</b></span>;
+                linktype = "Msg";
             }
             else if (isGroup) {
                 description = <span>the <b>{ this.state.entity }</b> group</span>;
+                linktype = "Group";
             }
 
             links = (
@@ -280,58 +310,15 @@ export default React.createClass({
                         </div>
                     </div>
 
-                    { linkable_clients.map((client) => {
-                        var link;
-                        if (isRoom && client.room_url) {
-                            link = client.room_url(this.state.entity);
-                        }
-                        else if (isRoomId && client.room_id_url) {
-                            link = client.room_id_url(this.state.entity);
-                        }
-                        else if (isUser && client.user_url) {
-                            link = client.user_url(this.state.entity);
-                        }
-                        else if (isMsg && client.msg_url) {
-                            link = client.msg_url(this.state.entity);
-                        }
-                        else if (isGroup && client.group_url) {
-                            link = client.group_url(this.state.entity);
-                        }
-                        if (!link) return null;
+                    { linkable_clients.map((client) => (
+                        <LinkableClient
+                            key = { client.name }
+                            client = { client }
+                            linktype = { linktype }
+                            entity = { this.state.entity }
+                        />
+                    ))}
 
-                        let logo;
-                        if (typeof client.logo === "string") {
-                            logo = <img src={client.logo} />;
-                        } else {
-                            logo = <img {...client.logo} />;
-                        }
-
-                        return (
-                            <div key={ client.name } className="mxt_HomePage_link">
-                                <div className="mxt_HomePage_link_logo">
-                                    <a href={ link }>{ logo }</a>
-                                </div>
-                                <div className="mxt_HomePage_link_name">
-                                    <a href={ link }>{ client.name }</a>
-                                    <div className="mxt_HomePage_link_homepage">
-                                        <a href={ client.homepage }>{ client.homepage }</a>
-                                    </div>
-                                </div>
-                                <div className="mxt_HomePage_link_comments">
-                                    { client.comments }
-                                </div>
-                                <div className="mxt_HomePage_link_author">
-                                    { client.author }
-                                </div>
-                                <div className="mxt_HomePage_link_maturity">
-                                    { client.maturity }
-                                </div>
-                                <div className="mxt_HomePage_link_link">
-                                    <a href={ link }>{ link }</a>
-                                </div>
-                            </div>
-                        );
-                    })}
                     { unlinkable_clients.map((client) => {
                         var instructions;
                         if (isRoom && client.room_instructions) {
@@ -434,6 +421,8 @@ export default React.createClass({
                         The service preserves user privacy by not
                         sharing any information about the links being followed with the Matrix.to server - the
                         redirection is calculated entirely clientside using JavaScript.
+                        If you have entered a custom Riot client URL it will be remembered for future visits
+                        by your browser for your convenience. The URL is never sent to the server.
                     </p>
                     <p>
                         Links are designed to be human-friendly, both for reading and constructing, and are
